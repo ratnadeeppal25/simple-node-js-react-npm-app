@@ -1,27 +1,98 @@
-pipeline {
-    agent {
+pipeline{
+    agent{
         docker {
-            image 'node:lts-buster-slim'
-            args '-p 3000:3000'
+            image 'maven:3.8.1-adoptopenjdk-11'
+            args '-v /root/.m2:/root/.m2'
         }
     }
-    stages {
-        stage('Build') {
-            steps {
-                sh 'npm install'
+    options {
+        skipStagesAfterUnstable()
+    }
+    stages{
+        stage("Build"){
+            steps{
+                echo "========Building Java project========"
+                sh 'mvn -B -DskipTests clean package'
+            }
+            post{
+                always{
+                    echo "========always========"
+                }
+                success{
+                    echo "========A executed successfully========"
+                }
+                failure{
+                    echo "========A execution failed========"
+                }
             }
         }
-        stage('Test') {
-            steps {
-                sh './jenkins/scripts/test.sh'
+        stage("Test"){
+            steps{
+                echo "====++++running Test++++===="
+                sh 'mvn test'
+            }
+            post{
+                always{
+                    echo "====++++always++++===="
+                    junit "target/surefire-reports/*.xml"
+                }
+                success{
+                    echo "====++++Test executed successfully++++===="
+                }
+                failure{
+                    echo "====++++Test execution failed++++===="
+                }
+       
             }
         }
-        stage('Deliver') { 
-            steps {
-                sh './jenkins/scripts/deliver.sh' 
-                input message: 'Finished using the web site? (Click "Proceed" to continue)' 
-                sh './jenkins/scripts/kill.sh' 
+        stage("Sonarqube Analysis"){
+            steps{
+                echo "====++++executing Sonarqube Analysis++++===="
+                withSonarQubeEnv('SonarQube') {
+                sh 'mvn sonar:sonar'
             }
+            }
+            post{
+                always{
+                    echo "====++++always++++===="
+                }
+                success{
+                    echo "====++++Sonarqube Analysis executed successfully++++===="
+                }
+                failure{
+                    echo "====++++Sonarqube Analysis execution failed++++===="
+                }
+       
+            }
+        }
+        stage("Deploy"){
+            steps{
+                echo "====++++executing Deploy++++===="
+                sh './jenkins/scripts/deliver.sh'
+            }
+            post{
+                always{
+                    echo "====++++always++++===="
+                }
+                success{
+                    echo "====++++Deploy executed successfully++++===="
+                }
+                failure{
+                    echo "====++++Deploy execution failed++++===="
+                }
+       
+            }
+        }
+    }
+    post{
+        always{
+            echo "========always========"
+        }
+        success{
+            echo "========pipeline executed successfully ========"
+        }
+        failure{
+            echo "========pipeline execution failed========"
         }
     }
 }

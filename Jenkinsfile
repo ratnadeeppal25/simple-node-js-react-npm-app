@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Build') { 
             steps {
-                sh 'nvm install --lts' 
+                sh 'nvm install' 
             }
         }
 

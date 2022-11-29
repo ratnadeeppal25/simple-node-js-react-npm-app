@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Build') { 
             steps {
-                sh 'npm install 16.13.0' 
+                sh 'nvm install --lts' 
             }
         }
 
